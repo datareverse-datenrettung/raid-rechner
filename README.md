@@ -16,7 +16,7 @@ By entering the number of drives, the capacity per drive, and selecting the RAID
 - **See maximum fault tolerance** – how many drives can fail without data loss
 - Spot **risky configurations** (e.g., RAID 0 or improperly paired RAID 10 arrays)
 - Configure **RAID 50** with custom groups and disks per group
-- Get **subtle safety recommendations** in critical scenarios, guiding you toward secure RAID configurations or professional **[RAID data recovery](https://www.datareverse-datenrettung.de/server/raid/)** if needed
+- Get **subtle safety recommendations** in critical scenarios, guiding you toward secure RAID configurations **[or professional RAID data recovery](https://www.datareverse-datenrettung.de/server/raid/)** if needed
 
 ---
 
