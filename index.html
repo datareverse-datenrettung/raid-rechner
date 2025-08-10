@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<!--
+  DATA REVERSE – Single-File RAID Calculator (Client-only)
+  Author: Johannes Hoffmeister – datareverse-datenrettung.de
+  Notes: Responsive, DE/EN inline toggle, constant subtle backlink sentence under title.
+-->
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="author" content="Johannes Hoffmeister – DATA REVERSE (datareverse-datenrettung.de)" />
+  <meta name="description" content="RAID Rechner: Kapazität, Effizienz, Overhead und Fehlertoleranz. Single-File, offline nutzbar." />
+  <title>RAID‑Rechner (Single HTML)</title>
+  <style>
+    :root{
+      --bg:#0c1116;--panel:#121820;--panel-2:#141d26;--muted:#a9b7c6;--text:#e7eef6;--accent:#78b9ff;
+      --ok:#17c598;--warn:#e4b04a;--err:#e56b6f;--border:#263244;--shadow:rgba(0,0,0,.25);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;color:var(--text);background:#0c1116;font:15.5px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial}
+    .wrap{max-width:1060px;margin:0 auto;padding:18px}
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin:6px 0 4px}
+    h1{font-size:20px;margin:0;letter-spacing:.1px;font-weight:600}
+    .badge{font-size:11px;border:1px solid var(--border);padding:2px 8px;border-radius:999px;color:var(--muted);background:#0f151c}
+    .card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:0 10px 28px var(--shadow)}
+    .grid{display:grid;grid-template-columns:1fr;gap:10px}
+    @media (min-width:760px){.grid{grid-template-columns:repeat(12,1fr)} .col-6{grid-column:span 6} .col-4{grid-column:span 4} .col-8{grid-column:span 8} .col-12{grid-column:span 12}}
+    @media (max-width:759px){.col-12,.col-8,.col-6,.col-4{grid-column:1 / -1}}
+    label{display:flex;gap:8px;align-items:center;margin-bottom:6px;color:var(--muted);font-size:13px}
+    input,select,textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #2a384a;background:#0f1620;color:var(--text);outline:none;transition:border-color .15s}
+    input:focus,select:focus,textarea:focus{border-color:#364d68}
+    textarea{min-height:84px;resize:vertical}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .hint{color:var(--muted);font-size:12px}
+    .level{display:flex;flex-wrap:wrap;gap:8px}
+    .level button{padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:#101722;color:var(--text);cursor:pointer;font-weight:600;letter-spacing:.1px;font-size:13px}
+    .level button.active{border-color:#4b6a8f;box-shadow:0 0 0 2px rgba(120,185,255,.14) inset}
+    .stat{display:flex;flex-direction:column;gap:4px;padding:10px;border-radius:10px;background:#0e1721;border:1px solid #223044}
+    .stat b{font-size:18px}
+    .hr{height:1px;background:#1a2431;margin:10px 0}
+    .alert{padding:10px 12px;border-radius:10px;background:#151f2a;border:1px solid #2a3a52;color:#d7e8ff;white-space:pre-line}
+    .footer{color:var(--muted);font-size:12px;margin-top:12px;opacity:.9}
+    .footer a{color:#bdd5f5;text-decoration:none;border-bottom:1px dotted #4a6588}
+    .sr{position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden}
+    /* Language inline toggle */
+    .lang-inline{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
+    .lang-inline button{background:none;border:none;color:inherit;cursor:pointer;padding:0 2px;border-bottom:1px dotted transparent}
+    .lang-inline button.active{color:var(--text);border-bottom-color:#5f7a98}
+    .lang-sep{opacity:.5}
+    /* Backlink sentence under title */
+    .subtle-link{margin:6px 0 8px;color:var(--muted);font-size:13px}
+    .subtle-link a{color:#bcd2ee;text-decoration:none;border-bottom:1px dotted #4a6588}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1 data-i18n="title">RAID‑Rechner <span class="badge" data-i18n="badge">Single‑File · Offline</span></h1>
+      <div class="lang-inline" aria-label="Language">
+        <button id="langDe" class="active" type="button">Deutsch</button>
+        <span class="lang-sep">|</span>
+        <button id="langEn" type="button">English</button>
+      </div>
+    </header>
+
+    <div class="subtle-link" id="headlineLinkBox"></div>
+
+    <!-- Eingabebereich -->
+    <section class="card" aria-labelledby="inputsTitle">
+      <h2 id="inputsTitle" class="sr" data-i18n="inputsTitle">Eingaben</h2>
+      <div class="grid">
+        <div class="col-12">
+          <label data-i18n="raidLevelLabel">RAID‑Level</label>
+          <div class="level" id="raidLevel"></div>
+          <div class="hint" id="supportedHint">Unterstützt: JBOD, 0, 1 (genau 2 Disks), 5, 6, 10, 50.</div>
+        </div>
+
+        <div class="col-6">
+          <label for="driveCount" data-i18n="driveCount">Anzahl Laufwerke</label>
+          <input id="driveCount" type="number" min="1" step="1" value="3" />
+        </div>
+        <div class="col-6">
+          <label for="driveSize" data-i18n="driveSize">Kapazität je Laufwerk</label>
+          <div class="row">
+            <input id="driveSize" type="number" min="0" step="0.01" value="4" />
+            <select id="unit" aria-label="Einheit">
+              <option value="TB">TB (Dezimal)</option>
+              <option value="GB">GB (Dezimal)</option>
+              <option value="TiB">TiB (Binär)</option>
+              <option value="GiB">GiB (Binär)</option>
+            </select>
+          </div>
+          <div class="hint" id="unitHint">Dezimal: 1 TB = 1.000.000.000.000 Byte · Binär: 1 TiB = 1.099.511.627.776 Byte</div>
+        </div>
+
+        <div class="col-12">
+          <div class="row">
+            <div class="hint" id="sizesHint">Individuelle Laufwerksgrößen (CSV) – gleiche Einheit wie oben</div>
+          </div>
+          <textarea id="sizesTA" placeholder="z. B. 4,4,3.5,2"></textarea>
+        </div>
+
+        <!-- RAID50 Parameter -->
+        <div class="col-12" id="r50Box" style="display:none">
+          <label data-i18n="r50Params">RAID 50 Parameter</label>
+          <div class="grid">
+            <div class="col-6">
+              <label for="r50Groups" data-i18n="r50Groups">Gruppen (RAID5‑Sets)</label>
+              <input id="r50Groups" type="number" min="2" step="1" value="2" />
+            </div>
+            <div class="col-6">
+              <label for="r50PerGroup" data-i18n="r50PerGroup">Disks je Gruppe</label>
+              <input id="r50PerGroup" type="number" min="3" step="1" value="3" />
+            </div>
+          </div>
+          <div class="hint" id="r50Hint">Gesamtzahl = Gruppen × Disks/Gruppe. Jede Gruppe verträgt 1 Ausfall.</div>
+        </div>
+      </div>
+      <div class="hr"></div>
+      <div id="warnings" class="alert" style="display:none"></div>
+    </section>
+
+    <!-- Ergebnisse -->
+    <section class="card" style="margin-top:10px" aria-labelledby="resultsTitle">
+      <h2 id="resultsTitle" class="sr" data-i18n="results">Ergebnisse</h2>
+      <div class="grid">
+        <div class="col-4 stat">
+          <span data-i18n="raw">Brutto‑Kapazität</span>
+          <b id="raw"></b>
+          <span class="hint" id="rawBytes"></span>
+        </div>
+        <div class="col-4 stat">
+          <span data-i18n="usable">Nutzen (Usable)</span>
+          <b id="usable"></b>
+          <span class="hint" id="usableBytes"></span>
+        </div>
+        <div class="col-4 stat">
+          <span data-i18n="overhead">Redundanz‑Overhead</span>
+          <b id="overhead"></b>
+          <span class="hint"><span data-i18n="eff">Effizienz</span>: <span id="eff"></span></span>
+        </div>
+        <div class="col-4 stat">
+          <span data-i18n="minDisks">Mindestanzahl Laufwerke</span>
+          <b id="minDisks"></b>
+          <span class="hint" data-i18n="limits">Konfigurationsgrenzen</span>
+        </div>
+        <div class="col-4 stat">
+          <span data-i18n="faultTol">Fehlertoleranz</span>
+          <b id="faultTol"></b>
+          <span class="hint" data-i18n="faultHint">Max. zugleich ausfallende Laufwerke</span>
+        </div>
+        <div class="col-4 stat">
+          <span data-i18n="notesLabel">Hinweise</span>
+          <b id="notes" style="font-size:14px"></b>
+          <span class="hint" id="modelHint">Vereinfachtes Modell; Controller/Metadata‑Overheads können abweichen.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Erklärungen -->
+    <section class="card" style="margin-top:10px">
+      <h3 style="margin-top:0" data-i18n="shortExplain">Kurz‑Erklärungen pro Level</h3>
+      <div id="explain" class="note"></div>
+    </section>
+
+    <div class="footer">
+      © DATA REVERSE · Autor: Johannes Hoffmeister · <a href="https://datareverse-datenrettung.de">datareverse-datenrettung.de</a> · Single‑File · Offline
+    </div>
+  </div>
+
+  <script>
+    // i18n strings – include full backlink sentence HTML
+    const STR = {
+      de: {
+        title: "RAID‑Rechner <span class='badge'>Single‑File · Offline</span>",
+        badge: "Single‑File · Offline",
+        headlineLink: "Bei kritischen RAID‑Fehlern und unklarer Situation mit der Datensicherung bei wichtigen Daten empfehlen wir <a href='https://www.datareverse-datenrettung.de/server/raid/' target='_blank' rel='noopener'>die RAID‑Datenrettung durch DATA REVERSE</a>.",
+        inputsTitle: "Eingaben",
+        raidLevelLabel: "RAID‑Level",
+        supportedHint: "Unterstützt: JBOD, 0, 1 (genau 2 Disks), 5, 6, 10, 50.",
+        driveCount: "Anzahl Laufwerke",
+        driveSize: "Kapazität je Laufwerk",
+        unitHint: "Dezimal: 1 TB = 1.000.000.000.000 Byte · Binär: 1 TiB = 1.099.511.627.776 Byte",
+        sizesHint: "Individuelle Laufwerksgrößen (CSV) – gleiche Einheit wie oben",
+        r50Params: "RAID 50 Parameter",
+        r50Groups: "Gruppen (RAID5‑Sets)",
+        r50PerGroup: "Disks je Gruppe",
+        r50Hint: "Gesamtzahl = Gruppen × Disks/Gruppe. Jede Gruppe verträgt 1 Ausfall.",
+        results: "Ergebnisse",
+        raw: "Brutto‑Kapazität",
+        usable: "Nutzen (Usable)",
+        overhead: "Redundanz‑Overhead",
+        eff: "Effizienz",
+        minDisks: "Mindestanzahl Laufwerke",
+        limits: "Konfigurationsgrenzen",
+        faultTol: "Fehlertoleranz",
+        faultHint: "Max. zugleich ausfallende Laufwerke",
+        notesLabel: "Hinweise",
+        modelHint: "Vereinfachtes Modell; Controller/Metadata‑Overheads können abweichen.",
+        shortExplain: "Kurz‑Erklärungen pro Level",
+        warnTooFew: lvl => `Zu wenige Laufwerke für RAID ${lvl}. Mindestens erforderlich: `,
+        warnR10Odd: "RAID 10 benötigt eine gerade Anzahl an Laufwerken. Letzte Platte bleibt ungenutzt.",
+        warnR1Exact: "RAID 1 unterstützt exakt 2 Laufwerke. Angepasst auf 2.",
+        warnR50Sync: (g,p,req) => `Gesamtzahl Disks = Gruppen × Disks/Gruppe (${g}×${p}) → ${req}. Angepasst.`,
+        criticalAdvice: `Bei kritischen RAID‑Problemen: `,
+        criticalLinkText: `mit der RAID‑Datenrettung durch DATA REVERSE`,
+        explain: {
+          JBOD: "JBOD: Aneinanderreihen ohne Redundanz. +Einfach, volle Kapazität – Kein Schutz.",
+          "0": "RAID 0: Striping ohne Redundanz. +Sehr schnell – Jeder Ausfall = Totalverlust.",
+          "1": "RAID 1: 2‑fach Spiegel. +Einfache Redundanz, schnelle Reads – 50% Effizienz.",
+          "5": "RAID 5: 1 Parität. +Gute Effizienz – Rebuild‑Risiko bei großen Disks.",
+          "6": "RAID 6: 2 Paritäten. +Besserer Schutz – weniger Effizienz, langsamere Writes.",
+          "10": "RAID 10: Stripe aus Spiegelpaaren. +Performance & Schutz – 50% Effizienz.",
+          "50": "RAID 50: Stripe über RAID‑5‑Gruppen. +Mehr Performance als RAID 5 – Komplexer."
+        },
+        faultLabel: { "10": "≥1 je Paar", "50": "1 je Gruppe" }
+      },
+      en: {
+        title: "RAID Calculator <span class='badge'>Single‑file · Offline</span>",
+        badge: "Single‑file · Offline",
+        headlineLink: "In case of critical RAID failures and uncertainty about the data backup situation with important data, we recommend <a href='https://www.datareverse-datenrettung.de/server/raid/' target='_blank' rel='noopener'>RAID data recovery by DATA REVERSE</a>.",
+        inputsTitle: "Inputs",
+        raidLevelLabel: "RAID level",
+        supportedHint: "Supported: JBOD, 0, 1 (exactly 2 disks), 5, 6, 10, 50.",
+        driveCount: "Number of drives",
+        driveSize: "Capacity per drive",
+        unitHint: "Decimal: 1 TB = 1,000,000,000,000 bytes · Binary: 1 TiB = 1,099,511,627,776 bytes",
+        sizesHint: "Individual drive sizes (CSV) – use the same unit as above",
+        r50Params: "RAID 50 parameters",
+        r50Groups: "Groups (RAID‑5 sets)",
+        r50PerGroup: "Disks per group",
+        r50Hint: "Total = groups × disks/group. Each group tolerates 1 failure.",
+        results: "Results",
+        raw: "Raw capacity",
+        usable: "Usable",
+        overhead: "Redundancy overhead",
+        eff: "Efficiency",
+        minDisks: "Minimum disks",
+        limits: "Configuration limits",
+        faultTol: "Fault tolerance",
+        faultHint: "Max. simultaneous disk failures",
+        notesLabel: "Notes",
+        modelHint: "Simplified model; controller/metadata overheads may vary.",
+        shortExplain: "Short explanations per level",
+        warnTooFew: lvl => `Too few drives for RAID ${lvl}. Minimum required: `,
+        warnR10Odd: "RAID 10 requires an even number of drives. Last drive will be unused.",
+        warnR1Exact: "RAID 1 supports exactly 2 drives. Adjusted to 2.",
+        warnR50Sync: (g,p,req) => `Total disks = groups × disks/group (${g}×${p}) → ${req}. Adjusted.`,
+        criticalAdvice: `For critical RAID issues, go the safe route: `,
+        criticalLinkText: `with RAID data recovery by DATA REVERSE`,
+        explain: {
+          JBOD: "JBOD: Concatenation without redundancy. +Simple, full capacity – No protection.",
+          "0": "RAID 0: Striping with no redundancy. +Very fast – Any failure = total loss.",
+          "1": "RAID 1: 2‑way mirror. +Simple redundancy, fast reads – 50% efficiency.",
+          "5": "RAID 5: Single parity. +Good efficiency – Rebuild risk with large disks.",
+          "6": "RAID 6: Dual parity. +Better protection – lower efficiency, slower writes.",
+          "10": "RAID 10: Stripe of mirrors. +Performance & protection – 50% efficiency.",
+          "50": "RAID 50: Stripe across RAID‑5 groups. +More performance than RAID 5 – more complex."
+        },
+        faultLabel: { "10": "≥1 per pair", "50": "1 per group" }
+      }
+    };
+
+    // RAID logic
+    const bytesPer = { GB: 1e9, TB: 1e12, GiB: 2**30, TiB: 2**40 };
+    const raidDefs = {
+      JBOD: { min: 1, fault: 0, calcUsable: (sizes) => sizes.reduce((a,b)=>a+b,0), note: "Kein Schutz / No redundancy" },
+      "0":  { min: 2, fault: 0, calcUsable: (sizes) => sizes.length * Math.min(...sizes), note: "Kein Schutz / No redundancy" },
+      "1":  { min: 2, max: 2, fault: 1, calcUsable: (sizes) => Math.min(...sizes), note: "Spiegelung / Mirroring (2 disks)" },
+      "5":  { min: 3, fault: 1, calcUsable: (sizes) => (sizes.length-1) * Math.min(...sizes), note: "1 Parität / 1 parity total" },
+      "6":  { min: 4, fault: 2, calcUsable: (sizes) => (sizes.length-2) * Math.min(...sizes), note: "2 Paritäten / 2 parity total" },
+      "10": { min: 4, fault: "≥1 je Paar", calcUsable: (sizes) => {
+          const pairs = Math.floor(sizes.length/2);
+          const sorted = sizes.slice(0).sort((a,b)=>a-b);
+          let sum = 0; for (let i=0;i<pairs;i++) sum += sorted[i];
+          return sum;
+        }, note: "Stripe aus Spiegelpaaren / Stripe of mirrors" },
+      "50": { min: 6, fault: "1 je Gruppe", calcUsable: (sizes, cfg) => {
+          const groups = cfg.r50Groups, per = cfg.r50PerGroup;
+          if (!groups || !per) return 0;
+          const minDisk = Math.min(...sizes);
+          return groups * (per - 1) * minDisk;
+        }, note: "Stripe über RAID‑5‑Gruppen / Stripe across RAID‑5 groups" }
+    };
+
+    const levelButtons = ["JBOD","0","1","5","6","10","50"];
+
+    // Default language: German (explicit per request)
+    let lang = "de";
+
+    let state = { level:"5", count:3, sizeEach:4, unit:"TB", sizesStr:"", r50Groups:2, r50PerGroup:3 };
+
+    const $ = sel => document.querySelector(sel);
+    function el(tag, props={}, children=[]) { const e=document.createElement(tag); Object.assign(e, props); children.forEach(c=>e.appendChild(c)); return e; }
+    function t(key){ return STR[lang][key] ?? key; }
+
+    function applyTexts(){
+      document.querySelectorAll("[data-i18n]").forEach(node => { const k=node.getAttribute("data-i18n"); node.innerHTML = t(k); });
+      $("#supportedHint").textContent = STR[lang].supportedHint;
+      $("#unitHint").textContent = STR[lang].unitHint;
+      $("#sizesHint").textContent = STR[lang].sizesHint;
+      $("#r50Hint").textContent = STR[lang].r50Hint;
+      $("#modelHint").textContent = STR[lang].modelHint;
+      $("#explain").textContent = STR[lang].explain[state.level];
+      // Constant backlink sentence
+      $("#headlineLinkBox").innerHTML = STR[lang].headlineLink;
+    }
+
+    function setupLangButtons(){
+      const de = $("#langDe"), en = $("#langEn");
+      function setActive(){ de.classList.toggle("active", lang==="de"); en.classList.toggle("active", lang==="en"); }
+      de.addEventListener("click", ()=>{ lang="de"; setActive(); applyTexts(); recalc(); });
+      en.addEventListener("click", ()=>{ lang="en"; setActive(); applyTexts(); recalc(); });
+      setActive();
+    }
+
+    function setupLevelButtons(){
+      const box = $("#raidLevel"); box.innerHTML="";
+      levelButtons.forEach(lv => {
+        const b = el("button", {innerText: lv, type:"button"});
+        b.addEventListener("click", ()=>{
+          document.querySelectorAll("#raidLevel button").forEach(x=>x.classList.remove("active"));
+          b.classList.add("active");
+          state.level = lv;
+          presetMinByLevel(); applyLevelConstraints(); recalc();
+          $("#explain").textContent = STR[lang].explain[lv] || "";
+        });
+        if(lv===state.level) b.classList.add("active");
+        box.appendChild(b);
+      });
+    }
+
+    function presetMinByLevel(){
+      const def = raidDefs[state.level];
+      const countInput = $("#driveCount");
+      if(state.level === "1"){ state.count = 2; }
+      else if(state.level === "50"){
+        state.r50Groups = Math.max(2, parseInt($("#r50Groups").value||"2",10));
+        state.r50PerGroup = Math.max(3, parseInt($("#r50PerGroup").value||"3",10));
+        state.count = state.r50Groups * state.r50PerGroup;
+      } else { state.count = Math.max(def.min, state.count || def.min); }
+      countInput.value = String(state.count);
+    }
+
+    function applyLevelConstraints(){
+      const countInput = $("#driveCount");
+      const r50Box = $("#r50Box");
+      if(state.level==="1"){ countInput.value = "2"; countInput.setAttribute("disabled","disabled"); }
+      else { countInput.removeAttribute("disabled"); }
+      r50Box.style.display = (state.level==="50") ? "" : "none";
+    }
+
+    const bytesMap = { GB: 1e9, TB: 1e12, GiB: 2**30, TiB: 2**40 };
+    function parseSizes(unit){
+      const base = bytesMap[unit] || 1;
+      if(!state.sizesStr.trim()) return Array.from({length: state.count}, _=> state.sizeEach * base);
+      const nums = state.sizesStr.split(/[,;\s]+/).map(s => Number(s)).filter(n => !isNaN(n) && n>0);
+      const arr = nums.map(n => n * base);
+      while(arr.length < state.count){ arr.push(Math.min(...arr)); }
+      if(arr.length > state.count) arr.length = state.count;
+      return arr;
+    }
+
+    function fmtBytes(b){
+      const abs = Math.abs(b), units = [["B",1],["KB",1e3],["MB",1e6],["GB",1e9],["TB",1e12],["PB",1e15]];
+      let u = units[0]; for(const cand of units){ if(abs >= cand[1]) u=cand; else break; }
+      return (b/u[1]).toFixed(2).replace(/\.00$/,'') + " " + u[0];
+    }
+    function fmtUnitBytes(b, unit){
+      if(unit==="GiB"||unit==="TiB"){
+        const units = [["B",1],["KiB",2**10],["MiB",2**20],["GiB",2**30],["TiB",2**40],["PiB",2**50]];
+        let u = units[0]; for(const cand of units){ if(b >= cand[1]) u=cand; else break; }
+        return (b/u[1]).toFixed(2).replace(/\.00$/,'') + " " + u[0];
+      }
+      return fmtBytes(b);
+    }
+
+    function recalc(){
+      if(state.level!=="1"){ state.count = Math.max(1, parseInt($("#driveCount").value||"1",10)); }
+      state.sizeEach = Math.max(0, Number($("#driveSize").value||"0"));
+      state.unit = $("#unit").value;
+      state.sizesStr = $("#sizesTA").value;
+      state.r50Groups = Math.max(2, parseInt($("#r50Groups").value || "2", 10));
+      state.r50PerGroup = Math.max(3, parseInt($("#r50PerGroup").value || "3", 10));
+
+      const warn = $("#warnings"); warn.style.display="none"; warn.textContent="";
+      const def = raidDefs[state.level]; if(!def) return;
+
+      let critical = false;
+
+      if(state.level==="50"){
+        const required = state.r50Groups * state.r50PerGroup;
+        if(state.count !== required){
+          showWarn(STR[lang].warnR50Sync(state.r50Groups, state.r50PerGroup, required));
+          state.count = required; $("#driveCount").value = String(required);
+        }
+      }
+
+      const sizesB = parseSizes(state.unit);
+      const raw = sizesB.reduce((a,b)=>a+b,0);
+      let usable = 0, notes = def.note;
+
+      if(state.count < def.min){ showWarn(STR[lang].warnTooFew(state.level) + def.min); critical = true; }
+      if(state.level==="10" && state.count%2!==0){ showWarn(STR[lang].warnR10Odd); critical = true; }
+      if(def.max && state.count !== def.max){
+        showWarn(STR[lang].warnR1Exact); critical = true;
+        state.count = def.max; $("#driveCount").value = "2";
+      }
+      if(state.level==="0"){ critical = true; } // RAID0 is risky
+
+      try { usable = def.calcUsable(sizesB, {r50Groups: state.r50Groups, r50PerGroup: state.r50PerGroup}); } catch(e){ usable = 0; }
+
+      const eff = raw>0 ? (usable/raw) : 0;
+      const overhead = raw - usable;
+
+      $("#raw").textContent = toUnit(raw, state.unit);
+      $("#rawBytes").textContent = fmtUnitBytes(raw, state.unit);
+      $("#usable").textContent = toUnit(usable, state.unit);
+      $("#usableBytes").textContent = fmtUnitBytes(usable, state.unit);
+      $("#overhead").textContent = toUnit(overhead, state.unit);
+      $("#eff").textContent = (eff*100).toFixed(1).replace(/\.0$/,'') + " %";
+      $("#minDisks").textContent = String(def.min);
+      const faultLabel = (lang==="de" ? { "10":"≥1 je Paar","50":"1 je Gruppe"} : {"10":"≥1 per pair","50":"1 per group"})[state.level] || String(def.fault);
+      $("#faultTol").textContent = faultLabel;
+      $("#notes").textContent = notes;
+
+      if(critical){
+        const line = document.createElement("div");
+        line.style.marginTop = "8px"; line.style.fontSize = "13px"; line.style.color = "#d7e8ff";
+        const a = document.createElement("a");
+        a.href = "https://www.datareverse-datenrettung.de/server/raid/"; a.target="_blank"; a.rel="noopener";
+        a.style.color = "#bdd5f5"; a.style.textDecoration = "none"; a.style.borderBottom = "1px dotted #4a6588";
+        a.textContent = STR[lang].criticalLinkText;
+        line.textContent = STR[lang].criticalAdvice + " ";
+        line.appendChild(a);
+        warn.appendChild(document.createElement("div")).textContent = ""; // spacer
+        warn.appendChild(line);
+      }
+
+      if(warn.textContent.trim()!==""){ warn.style.display="block"; }
+    }
+
+    function showWarn(msg){
+      const warn = $("#warnings");
+      warn.style.display="block";
+      warn.textContent = (warn.textContent ? warn.textContent + "\\n" : "") + "• " + msg;
+    }
+
+    function toUnit(bytes, unit){
+      const base = { GB: 1e9, TB: 1e12, GiB: 2**30, TiB: 2**40 }[unit] || 1;
+      const val = bytes / base;
+      return (Math.round(val*100)/100) + " " + unit;
+    }
+
+    function init(){
+      setupLangButtons();
+      setupLevelButtons();
+      presetMinByLevel();
+      applyLevelConstraints();
+      ["driveCount","driveSize","unit","sizesTA","r50Groups","r50PerGroup"].forEach(id => {
+        const el = document.getElementById(id); if(el) el.addEventListener("input", recalc);
+      });
+      applyTexts();
+      recalc();
+    }
+    document.addEventListener("DOMContentLoaded", init);
+  </script>
+</body>
+</html>
